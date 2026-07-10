@@ -14,6 +14,22 @@ def configure_library(cxx, name, linux_defines):
 
   if binary.compiler.target.platform == 'linux':
     binary.compiler.defines += linux_defines
+    # glibc<2.31 compat shim is only needed for the 64-bit Source2 runtime;
+    # applying the --wrap/static-libstdc++ flags to the legacy 32-bit loader
+    # breaks linking (no symbol version section for strtol@GLIBC_2.2.5).
+    if binary.compiler.target.arch == 'x86_64':
+      binary.sources += [os.path.join('..', 'core', 'glibc_compat.cpp')]
+      binary.compiler.linkflags += [
+        '-Wl,--wrap=fmodf', '-Wl,--wrap=fmod',
+        '-Wl,--wrap=fstat64', '-Wl,--wrap=fstat',
+        '-Wl,--wrap=stat64', '-Wl,--wrap=stat',
+        '-Wl,--wrap=dlopen', '-Wl,--wrap=dlsym', '-Wl,--wrap=dlclose',
+        '-Wl,--wrap=dladdr', '-Wl,--wrap=dlinfo', '-Wl,--wrap=dlerror',
+        '-Wl,--wrap=pthread_once', '-Wl,--wrap=__pthread_key_create',
+        '-Wl,--wrap=__isoc23_strtol', '-Wl,--wrap=__isoc23_strtoul', '-Wl,--wrap=__isoc23_strtoull',
+        '-Wl,--wrap=__isoc23_fscanf', '-Wl,--wrap=__isoc23_sscanf',
+        '-static-libgcc', '-static-libstdc++'
+      ]
 
   nodes = builder.Add(binary)
   MMS.binaries += [nodes]

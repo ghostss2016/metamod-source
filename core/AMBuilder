@@ -14,6 +14,7 @@ for sdk_target in MMS.sdk_targets:
     'metamod_oslink.cpp',
     'metamod_plugins.cpp',
     'metamod_util.cpp',
+    'glibc_compat.cpp',
     'provider/provider_base.cpp',
     'sourcehook/sourcehook.cpp',
     'sourcehook/sourcehook_impl_chookidman.cpp',
@@ -23,6 +24,19 @@ for sdk_target in MMS.sdk_targets:
     'sourcehook/sourcehook_hookmangen.cpp',
     'gamedll_bridge.cpp'
   ]
+
+  if binary.compiler.target.platform == 'linux':
+    binary.compiler.linkflags += [
+      '-Wl,--wrap=fmodf', '-Wl,--wrap=fmod',
+      '-Wl,--wrap=fstat64', '-Wl,--wrap=fstat',
+      '-Wl,--wrap=stat64', '-Wl,--wrap=stat',
+      '-Wl,--wrap=dlopen', '-Wl,--wrap=dlsym', '-Wl,--wrap=dlclose',
+      '-Wl,--wrap=dladdr', '-Wl,--wrap=dlinfo', '-Wl,--wrap=dlerror',
+      '-Wl,--wrap=pthread_once', '-Wl,--wrap=__pthread_key_create',
+      '-Wl,--wrap=__isoc23_strtol', '-Wl,--wrap=__isoc23_strtoul', '-Wl,--wrap=__isoc23_strtoull',
+      '-Wl,--wrap=__isoc23_fscanf', '-Wl,--wrap=__isoc23_sscanf',
+      '-static-libgcc', '-static-libstdc++'
+    ]
 
   if sdk.get('source2', False):
     binary.sources += [
