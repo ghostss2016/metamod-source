@@ -57,6 +57,20 @@ extern "C" int __wrap_pthread_once(pthread_once_t* once_control, void (*init_rou
     return __glibc_pthread_once(once_control, init_routine);
 }
 
+// pthread_create/detach/join переехали в libc с GLIBC_2.34 — привязываем к старой версии.
+// Требуют флаги: -Wl,--wrap=pthread_create -Wl,--wrap=pthread_detach -Wl,--wrap=pthread_join
+__asm__(".symver __glibc_pthread_create, pthread_create@GLIBC_2.2.5");
+__asm__(".symver __glibc_pthread_detach, pthread_detach@GLIBC_2.2.5");
+__asm__(".symver __glibc_pthread_join,   pthread_join@GLIBC_2.2.5");
+extern "C" int __glibc_pthread_create(pthread_t*, const pthread_attr_t*, void* (*)(void*), void*);
+extern "C" int __glibc_pthread_detach(pthread_t);
+extern "C" int __glibc_pthread_join(pthread_t, void**);
+extern "C" int __wrap_pthread_create(pthread_t* t, const pthread_attr_t* a, void* (*f)(void*), void* arg) {
+    return __glibc_pthread_create(t, a, f, arg);
+}
+extern "C" int __wrap_pthread_detach(pthread_t t) { return __glibc_pthread_detach(t); }
+extern "C" int __wrap_pthread_join(pthread_t t, void** r) { return __glibc_pthread_join(t, r); }
+
 __asm__(".symver __glibc_pthread_key_create, __pthread_key_create@GLIBC_2.2.5");
 extern "C" int __glibc_pthread_key_create(pthread_key_t*, void (*)(void*));
 extern "C" int __wrap___pthread_key_create(pthread_key_t* key, void (*destructor)(void*)) {
@@ -121,6 +135,12 @@ struct dl_find_object;
 extern "C" __attribute__((weak)) int _dl_find_object(void* address, struct dl_find_object* result) {
     return -1;
 }
+
+// __wrap-варианты — для AMBuilder'ов с авто-блоком GLIBC_COMPAT_AUTO (оборачивают эти символы напрямую).
+// Канон универсален: одинаково работает и с --wrap-сборками, и без. Неиспользуемые = мёртвый код (безвредно).
+extern "C" __attribute__((weak)) int __wrap__dl_find_object(void* address, void* result) { return -1; }
+extern "C" int __wrap___isoc23_vsscanf(const char* s, const char* format, va_list ap) { return __old_vsscanf(s, format, ap); }
+extern "C" int __wrap___isoc23_vfscanf(FILE* stream, const char* format, va_list ap) { return __old_vfscanf(stream, format, ap); }
 
 namespace std {
     extern "C" __attribute__((weak)) void _ZSt21ios_base_library_initv() {}
